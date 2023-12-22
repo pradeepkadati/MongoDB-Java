@@ -1,0 +1,418 @@
+show dbs
+use flights (which is db name)
+
+JSON:
+
+[
+{
+"departureAirport":"MUC",
+"arrivalAirport":"SFO",
+"airCraft":"Airbus A380",
+"distance":1200,
+"intercontwinential":true
+},{
+"departureAirport":"LHR",
+"arrivalAirport":"TXL",
+"airCraft":"Airbus A320",
+"distance":950,
+"intercontwinential":false
+}
+
+]
+
+db.flightsData.insertOne({"departureAirport":"MUC","arrivalAirport":"SFO","airCraft":"Airbus A380","distance":1200,"intercontwinential":true});
+db.flightsData.deleteOne({departureAirport: 'LHR'})
+db.flightsData.deleteMany({})
+db.flightsData.updateOne({ distance: 1200},{$set:{marker:true}});
+db.flightsData.updateMany({},{$set:{marker:'toDelete'}})
+db.flightsData.insertOne({"departureAirport":"MUC","arrivalAirport":"SFO","airCraft":"Airbus A380","distance":1200,"intercontwinential":true});
+db.flightsData.insertMany([{"departureAirport":"MUC","arrivalAirport":"SFO","airCraft":"Airbus A380","distance":1200,"intercontwinential":true},{"departureAirport":"LHR","arrivalAirport":"TXL","airCraft":"Airbus A320","distance":950,"intercontwinential":false}]);
+db.flightsData.find({departureAirport: 'LHR'});
+db.flightsData.find({distance:{$gt:700}});
+db.flightsData.findOne({distance:{$gt:700}});
+db.flightsData.findOne({distance:{$gt:700}},{airCraft:0});
+flights> db.flightsData.find({},{distance:1});
+db.flightsData.find({},{distance:1,_id:0});
+db.flightsData.updateMany({},{$set:{status:{desc:"on-time",lastUpdated:"1 hour ago"}}});
+db.flightsData.updateMany({},{$set:{status:{desc:"on-time",lastUpdated:"1 hour ago",details:{"responsible":"Max Schew"}}}});
+db.flightsData.updateMany({},{$set:{hobbies:['eating','reading']}});
+db.flightsData.findOne( {departureAirport: 'LHR'}).hobbies
+db.flightsData.findOne( {"status.desc":"on-time"});
+db.flightsData.findOne( {"status.details.responsible":'Max Schew'});
+db.flightsData.findOne( {"hobbies":"eating"});
+
+ db.dropDatabase();
+ db.flightsData.drop();
+ 
+ db.products.deleteMany({});
+ 
+ Aggregator:
+ 
+ shop> db.books.find()
+[
+  {
+    _id: ObjectId("6570fcff07ca396fa3365d2b"),
+    name: 'My Fav Book',
+    authorId: [
+      ObjectId("6570fc4607ca396fa3365d29"),
+      ObjectId("6570fc4607ca396fa3365d2a")
+    ]
+  }
+]
+shop> db.authors.find();
+[
+  {
+    _id: ObjectId("6570fc4607ca396fa3365d29"),
+    name: 'Max Schwarz',
+    age: 20,
+    address: { street: 'Main' }
+  },
+  {
+    _id: ObjectId("6570fc4607ca396fa3365d2a"),
+    name: 'Manuel',
+    age: 25,
+    address: { street: 'Tree' }
+  }
+shop> db.books.aggregate([{$lookup:{from:"authors",localField:"authorId",foreignField:"_id",as:"creators"}}])
+[
+  {
+    _id: ObjectId("6570fcff07ca396fa3365d2b"),
+    name: 'My Fav Book',
+    authorId: [
+      ObjectId("6570fc4607ca396fa3365d29"),
+      ObjectId("6570fc4607ca396fa3365d2a")
+    ],
+    creators: [
+      {
+        _id: ObjectId("6570fc4607ca396fa3365d2a"),
+        name: 'Manuel',
+        age: 25,
+        address: { street: 'Tree' }
+      },
+      {
+        _id: ObjectId("6570fc4607ca396fa3365d29"),
+        name: 'Max Schwarz',
+        age: 20,
+        address: { street: 'Main' }
+      }
+    ]
+  }
+]
+
+Ordered:
+
+test> db.customer.insertMany([{"_id":"rama",name:"rama"},{_id:"bus",name:"bus"},{_id:"dance",name:"dance"}],{ordered:false});
+
+default beahviour: orderd:true-> which will terminate insertions when we get any error.
+
+Write Concern: { w: <value>, j: <boolean>, wtimeout: <number> }
+default:  { w: 1, j: undefined/false, wtimeout: <number> }
+
+db.customer.insertOne({name:"chris",age:41},{writeConcern:{w:0}})
+ acknowledged: false,--> it will be superfast and it wont wait for id generation
+db.customer.insertOne({name:"chris",age:41},{writeConcern:{w:1}})
+ acknowledged: true,
+
+j: undefined/false --> it wont write it to journal and it is fast
+j: true --> it will be slow to write jpournal but it is highly secured ,it wont miss any record even nw is down.
+
+db.customer.insertOne({name:"crameerr",age:41},{writeConcern:{w:1,j:true}});
+
+
+Reading:
+db.users.find({})
+db.users.find({age:28})
+db.users.findOne({})
+db.users.findOne({name:"max"})
+
+Comparision Opearators:
+
+db.users.find({age:{$gt:25}})
+db.users.find({age:{$gte:28}})
+db.users.find({age:{$lt:28}})
+db.users.find({age:{$lte:28}})
+db.users.find({age:{$eq:28}})
+db.users.find({age:{$ne:28}})
+db.movies.find({year:{$in:[1974,1925]}})
+db.movies.find({year:{$nin:[1974,1925]}})
+
+Embeded docs
+db.movies.find({"imdb.rating":{$eq:6.2}})
+db.movies.find({"tomatoes.viewer.meter":{$eq:57}})
+db.movies.find({genres:"Comedy"}) --> it will search for any one of the array element
+db.movies.find({genres:[ 'Comedy', 'Western' ]}) --> it will search for exact array elements
+
+Logical Operators:
+db.movies.find({$or:[{"runtime":{$eq:65}},{"runtime":{$eq:60}}]}).count()
+db.movies.find({$nor:[{"runtime":{$eq:65}},{"runtime":{$eq:60}}]}).count();
+db.movies.find({$and:[{"runtime":{$eq:65}},{"genres": [ 'Comedy', 'Drama', 'Family' ]}]}) 
+db.movies.find({"runtime":{$eq:65},"genres": [ 'Comedy', 'Drama', 'Family' ]})
+db.movies.find({"runtime":{$not:{$eq:65}}}).count()
+db.users.find({"age":{$exists:true}}) -->will return null values as well
+db.users.find({"age":{$exists:true,$gt:20}})
+db.users.find({age:{$type:'number'}})
+db.users.find({"age":{$exists:true,$ne:null}})
+
+Evaluation Opearators
+db.movies.find({title:{$regex:"The Great Train Robbery"}}).count()
+
+Arrays:
+
+db.users.find({hobbies:{ title: 'one', freq: 1}}) -->will return entire array and check for all searched elements
+db.users.find({"hobbies.title":'sports'}) -->will return all elements which has title:sports
+db.users.find({hobbies:{$size:3}}) -->check for array size 3
+db.users.find({genres:{$all: [ 'sports', 'writing' ]}}) --> look for exact match but does not look for same order
+db.users.find({genres:'sports'}) -->--> it wont look for exact match, it will return all elements which has genres as 'sports'
+db.users.find({$and:[{"hobbies.title": 'sports', "hobbies.freq": {$gt:2}}]}) --> it will check for  hobbies.title": 'sports in any of the element within the array and freq>2 
+[
+  {
+    _id: ObjectId("6577a4ba7b18ba2b7eae9679"),
+    name: 'max',
+    hobbies: [
+      { title: 'sports', freq: 2, goodFreq: true },
+      {
+        title: 'cooking',
+        freq: 4,
+        'goodFreq}': false,
+        goodFreq: false
+      }
+    ],
+    phone: 34567344
+  }
+]
+
+ db.users.find({hobbies:{$elemMatch:{ title: 'sports', freq: 2}}})
+[
+  {
+    _id: ObjectId("6577a4ba7b18ba2b7eae9679"),
+    name: 'max',
+    hobbies: [
+      { title: 'sports', freq: 2, goodFreq: true },
+      {
+        title: 'cooking',
+        freq: 4,
+        'goodFreq}': false,
+        goodFreq: false
+      }
+    ],
+    phone: 34567344
+  },
+  {
+    _id: ObjectId("6577a5ca7b18ba2b7eae967b"),
+    name: 'Anna',
+    hobbies: [
+      { title: 'sports', freq: 2, goodFreq: true },
+      { title: 'yoge', freq: 4, 'goodFreq}': false, goodFreq: false }
+    ],
+    phone: 34536456,
+    totAge: 10
+  }
+]
+  
+  db.users.find({hobbies:{$all:[{ title: 'sports', freq: 2,goodFreq:true}]}})
+[
+  {
+    _id: ObjectId("6577a4ba7b18ba2b7eae9679"),
+    name: 'max',
+    hobbies: [
+      { title: 'sports', freq: 2, goodFreq: true },
+      {
+        title: 'cooking',
+        freq: 4,
+        'goodFreq}': false,
+        goodFreq: false
+      }
+    ],
+    phone: 34567344
+  }
+  ]
+  
+Cursors:
+
+db.movies.find().next() -->will return next document within the cursor
+hasNext()--> will check for next Element will be presentor not
+
+db.users.find().sort({"totAge":-1}) --> descending and  db.users.find().sort({"totAge":1}) --> Ascending
+db.users.find().sort({"totAge":-1,"name":1}) --> multi sorting
+db.users.find().sort({"totAge":-1,"name":1}).skip(13) --> it will skip the number of elements
+db.users.find().sort({"totAge":-1,"name":1}).skip(10).limit(2)
+Projection:
+db.users.find({},{"_id":0,"name":1}) 
+db.users.find({},{"_id":0,"hobbies.title":1})
+db.users.find({"genres":{$all:["sports","writing"]}},{"genres":{$elemMatch:{$eq:"sports"}}});
+db.users.find({"genres":{$all:["sports","writing"]}},{"genres":{$slice:1},name:1}); --> it will show the first element in the array
+db.users.find({"genres":{$all:["sports","writing"]}},{"genres":{$slice:[1,2]},name:1}); --> it will skip the first element and show the next 2 elements in the array
+db.users.find({"genres":{$all:["sports","writing"]}},{"hobbies":{$slice:[1,2]},name:1})
+
+ db.users.find({hobbies:"cooking"},{"hobbies.$":1})
+[
+  { _id: ObjectId("6578a3e5d55e6f14b4b1bbd1"), hobbies: [ 'cooking' ] },
+  { _id: ObjectId("6578a94dd55e6f14b4b1bbd2"), hobbies: [ 'cooking' ] },
+  { _id: ObjectId("6578ce15d55e6f14b4b1bbd7"), hobbies: [ 'cooking' ] }
+]
+
+db.users.find({age:28},{"hobbies":{$slice:[1,2]},name:1})
+[
+  {
+    _id: ObjectId("6578e2f113a91201302ddfb2"),
+    name: 'Maria',
+    hobbies: [ { title: 'drawing', freq: 23 }, { title: 'painting', freq: 2 } ]
+  }
+]
+
+ db.users.find({age:28,"hobbies":{$elemMatch:{title:"test"}}},{"hobbies":{$slice:[1,2]},name:1})
+[
+  {
+    _id: ObjectId("6578e2f113a91201302ddfb2"),
+    name: 'Maria',
+    hobbies: [ { title: 'drawing', freq: 23 }, { title: 'painting', freq: 2 } ]
+  }
+]
+
+db.users.find({age:28},{"hobbies.title":1})
+[
+  {
+    _id: ObjectId("6578e2f113a91201302ddfb2"),
+    hobbies: [
+      { title: 'test' },
+      { title: 'drawing' },
+      { title: 'painting' },
+      { title: 'Hiking' }
+    ]
+  }
+]
+ db.users.find({age:28,"hobbies":{$elemMatch:{title:"painting"}}},{"hobbies.title.$":1,name:1})
+ 
+ update:
+ 
+  db.users.updateOne({ name: 'Chris'},{$set:{"age":10}}) -->will add extra age:10
+  db.users.updateMany({ name: 'Chris'},{$set:{hobbies:[{title:"sports",freq:2},{title:"coocking",freq:3},{title:"hiking",freq:1}]}}) -->it will replace the existing hobbies
+  db.users.updateOne({ _id: ObjectId("6578a3e5d55e6f14b4b1bbd1")},{$set:{age:20,phone:35346547}})
+  db.users.updateOne({ _id: ObjectId("6578a3e5d55e6f14b4b1bbd1")},{$inc:{age:1}})
+  db.users.updateOne({ _id: ObjectId("6578a3e5d55e6f14b4b1bbd1")},{$inc:{age:-1}})
+  db.users.updateOne({ _id: ObjectId("6578a3e5d55e6f14b4b1bbd1")},{$inc:{age:1},$set:{isSporty:false}})
+  db.users.updateOne({ _id: ObjectId("6578a3e5d55e6f14b4b1bbd1")},{$min:{age:20}})  -->    old age: 22, min only change the value if the new value is lower than existing value.
+  updated to 20
+  db.users.updateOne({ _id: ObjectId("6578a3e5d55e6f14b4b1bbd1")},{$max:{age:32}})  -->    age: 22, min only change the value if the old value is lower than existing value.
+  updated to 32
+  db.users.updateOne({ _id: ObjectId("6578a3e5d55e6f14b4b1bbd1")},{$mul:{age:2}})
+  updated to 64
+  Getting Rid of Feilds:
+  db.users.updateMany({isSporty:true,age:10},{$unset:{phone:454654}})
+  Renaming Feilds:
+  db.users.updateMany({},{$rename:{age:"newAge"}})
+  db.users.updateOne({name:"losta"},{$set:{age:12,hobbies:[{title:"sports",freq:2}]}},{upsert:true}) -->if it exists, it will update otherwise it will create new
+  
+  db.users.updateMany({hobbies:{$elemMatch:{title:"sports",freq:{$gt:2}}}},{$set:{"hobbies.$.newFreq":true}}) -->updated matched Array Elements
+   {
+    _id: ObjectId("6578ac7ed55e6f14b4b1bbd3"),
+    name: 'Chramb',
+    hobbies: [
+      {
+        title: 'sports',
+        freq: 4,
+        highFrequency: true,
+        goodFreq: false,
+        'goodFreq}': false,
+        newFreq: true
+      },
+      { title: 'writing', freq: 1 }
+    ],
+    phone: 4565046,
+    totAge: 33
+  }
+  
+   db.users.updateMany({"hobbies.freq":{$gte:2}},{$set:{"hobbies.$.badFreq":false}}) -->it will update only first match within the array
+   db.users.updateMany({newAge:{$gte:50}},{$inc:{"hobbies.$[].freq":1}}) -->it will update all elements
+   db.users.updateMany({"hobbies.freq":{$gt:2}},{$set:{"hobbies.$[el].goodFreq":true}},{arrayFilters:[{"el.freq":{$gt:2}}]}) -->
+  {
+    _id: ObjectId("6578e2f113a91201302ddfb2"),
+    name: 'Maria',
+    hobbies: [
+      {
+        title: 'test',
+        freq: 4,
+        'goodFreq}': false,
+        goodFreq: true,
+        badFreq: false,
+        pushCheck: [ true ]
+      },
+      {
+        title: 'drawing',
+        freq: 23,
+        pushCheck: [ true ],
+        goodFreq: true
+      },
+      { title: 'painting', freq: 2 },
+      { title: 'Hiking', freq: 3, pushCheck: [ true ], goodFreq: true }
+    ],
+    newAge: 28
+  }
+  db.users.updateMany({"hobbies.freq":{$gt:2}},{$set:{"hobbies.$[el].goodFreq":false}},{arrayFilters:[{"el.freq":{$gt:2}}]})
+   {
+    _id: ObjectId("6578e2f113a91201302ddfb2"),
+    name: 'Maria',
+    hobbies: [
+      {
+        title: 'test',
+        freq: 4,
+        'goodFreq}': false,
+        goodFreq: false,
+        badFreq: false,
+        pushCheck: [ true ]
+      },
+      {
+        title: 'drawing',
+        freq: 23,
+        pushCheck: [ true ],
+        goodFreq: false
+      },
+      { title: 'painting', freq: 2 },
+      {
+        title: 'Hiking',
+        freq: 3,
+        pushCheck: [ true ],
+        goodFreq: false
+      }
+    ],
+    newAge: 28
+  }
+  
+  db.users.updateMany({"hobbies.freq":{$gt:2}},{$unset:{"hobbies.$[el].goodFreq":false}},{arrayFilters:[{"el.freq":{$gt:2}}]}) -->it will remove
+  db.users.updateMany({"hobbies.freq":{$gt:2}},{$inc:{"hobbies.$[el].freq":-1}},{arrayFilters:[{"el.freq":{$gt:2}}]}) -->will decrement
+  db.users.updateMany({name:"Maria"},{$push:{hobbies:{title:"sports",freq:27}}}) -->it will push new doc within the array
+   {
+    _id: ObjectId("6578e2f113a91201302ddfb2"),
+    name: 'Maria',
+    hobbies: [
+      {
+        title: 'test',
+        freq: 3,
+        'goodFreq}': false,
+        badFreq: false,
+        pushCheck: [ true ]
+      },
+      { title: 'drawing', freq: 22, pushCheck: [ true ] },
+      { title: 'painting', freq: 2 },
+      { title: 'Hiking', freq: 2, pushCheck: [ true ] },
+      { title: 'sports', freq: 27 }
+    ],
+    newAge: 28
+  }
+   db.users.updateMany({name:"Maria"},{$push:{hobbies:{$each:[{title:"hiking",freq:2},{title:"Good Wine",freq:6}],$sort:{freq:-1}}}}) -->push 2 elements with descending order and also will update all existing data within the array
+   
+   db.users.updateMany({name:"Maria"},{$pull:{hobbies:{title:"hiking"}}}) ->it will remove hiking
+   db.users.updateMany({name:"Maria"},{$pop:{hobbies:1}}) --> it will remove last element from an array
+   db.users.updateMany({name:"Maria"},{$pop:{hobbies:-1}})--> it will remove first element from an array
+   db.users.updateMany({name:"Maria"},{$addToSet:{hobbies:{title:"sports",freq:27}}})-->it is same as push but wont add duplicate if it is already presentor
+   
+   
+   Delete Operators
+    db.sample.deleteOne({"hobbies.title":"one"})
+	db.sample.deleteMany({"name":"deepthi"})
+	db.sample.deleteMany({})
+	db.sample.drop()
+	db.dropDatabase()
+	
+	Indexes;
+	
