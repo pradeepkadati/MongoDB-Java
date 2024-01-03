@@ -415,4 +415,66 @@ db.users.find({age:28},{"hobbies.title":1})
 	db.dropDatabase()
 	
 	Indexes;
+
+
+
+Indexes:
+	 db.contacts.explain("executionStats").find({"dob.age":{$gt:60}})
+	 db.contacts.createIndex({"dob.age":1})-->Ascending
+	 db.contacts.dropIndex({"dob.age":1})
+	  
+Restrictions;
+1) If we have a dataset where your queries typically only retuen fractions,like 10 or 20 % or lower	than thatof the documents then indexes will speed up.
+For index based search we need to go for 2 levels of searchs. one is index based and then document serach.
+indexeswill be created on ordered  list.
+
+Compound index
+db.contacts.createIndex({"dob.age":1,"gender":1}) --compound index, it will either do index scan for combination of age and gender or only for age. It wont do for only gender.
+we can add multiple indexes only based on left to right not for the last one. Almost we can add 31 indexes.
+
+Adv:
+when we are sorting documents and you have a lot of documents at a given query,you might need an index to be able to sort them at all
+because mongo db has this threshhold of 32 mb which it reserves in memory for the fetched documents and sorting them.
+
+ db.contacts.getIndexes()  --> default index is _id
+[
+  { v: 2, key: { _id: 1 }, name: '_id_' },
+  {
+    v: 2,
+    key: { 'dob.age': 1, gender: 1 },
+    name: 'dob.age_1_gender_1'
+  }
+]
+Unique: unique index for maintaining unique values for that given field
+contactdata> db.contacts.createIndex({email:1},{unique:true})
+MongoServerError: Index build failed: 4f0a8087-1b9b-4911-9963-26d4ce89505c: Collection contactdata.contacts ( 4ee188bc-563d-43fc-b251-3ab415c52d4a ) :: 
+caused by :: E11000 duplicate key error collection: contactdata.contacts index: email_1 dup key: { email: "abigail.clark@example.com" }
+
+Partial Filters:
+ db.contacts.createIndex({"dob.age":1},{partialFilterExpression:{gender:"male"}})	
+ 
+ > db.user.dropIndex({email:1})
+contactdata> db.user.insertOne({name:"Anna"})
+MongoServerError: E11000 duplicate key error collection: contactdata.user index: email_1 dup key: { email: null }
+ db.user.createIndex({email:1},{unique:true,partialFilterExpression:{email:{$exists:true}}})
+ 
+Time To Live: It allows you to maintain a collection of documents which destroy themselves after a certain time span and  for a lot of applications like clear sessions or cart info after 1 day.
+ db.sessions.createIndex({createdAt:1},{expireAfterSeconds:10}) 
+ 
+Explain : queryPlanner  -->executed query+ winning plan
+		   executionStats -->executed query+ winning plan +Rejected plans
+		   allPlansExecution -->executed query+ winning plan + winning plan decision process	
+
+Covered Queries: 		   
+ 
+Geospatial Queries:
+ db.places.insertOne({name:"california Academy of Scieneces",location:{type:"Point",coordinates:[-122.467235,37.76]}});
+
+ GeoJSON:
+ Index:  db.places.createIndex({location:"2dsphere"})
+ db.places.find({location:{$near:{$geometry:{type:"Point",coordinates:[-122.471114,37.771104]},$maxDistance:1000,$minDistance:10}}}) --> it will return all locations within 1000 distance.
+ db.places.find({location:{$geoWithin:{$geometry:{type:"Polygon",coordinates:[[p1,p2,p3,p4,p1]]}}}}) --> find out the places within some area
+ db.places.find({location:{$geoWithin:{$centerSphere:[p1,p2,p3,p4,p1],1/6378.12}})
+ area:{$geoIntersects --> it will return all areas that have a common point or a common area.
+   
 	
