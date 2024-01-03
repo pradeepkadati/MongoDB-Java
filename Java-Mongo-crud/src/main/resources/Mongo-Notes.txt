@@ -477,4 +477,173 @@ Geospatial Queries:
  db.places.find({location:{$geoWithin:{$centerSphere:[p1,p2,p3,p4,p1],1/6378.12}})
  area:{$geoIntersects --> it will return all areas that have a common point or a common area.
    
-	
+Aggregator:
+ 
+ db.persons.aggregate([{$match:{gender:"female"}}])
+ analytics> db.persons.aggregate([{$match:{gender:"female"}},{$group:{_id:{state:"$location.state"},totalPersons:{$sum:1}}}])
+o/p:
+[
+  { _id: { state: 'cork city' }, totalPersons: 2 },
+  { _id: { state: 'şanlıurfa' }, totalPersons: 6 },
+  { _id: { state: 'sinop' }, totalPersons: 3 }]
+ analytics> db.persons.find({gender:"female","location.state":"sinop"}).count()
+3
+
+analytics> db.persons.aggregate([{$match:{gender:"female"}},{$group:{_id:{state:"$location.state"},totalPersons:{$sum:1}}},{$sort:{totalPersons:-1}}]) --> descending order
+[
+  { _id: { state: 'midtjylland' }, totalPersons: 33 },
+  { _id: { state: 'nordjylland' }, totalPersons: 27 },
+  { _id: { state: 'new south wales' }, totalPersons: 24 },
+  { _id: { state: 'australian capital territory' }, totalPersons: 24 },
+  
+ db.persons.aggregate([{$project:{_id:0,gender:1,fullName:{$concat:["Hello","World"]}}}])
+[
+  { gender: 'male', fullName: 'HelloWorld' },
+  { gender: 'male', fullName: 'HelloWorld' }
+]
+
+analytics> db.persons.aggregate([{$project:{_id:0,gender:1,fullName:{$concat:["$name.first","$name.last"]}}}])
+[
+  { gender: 'male', fullName: 'victorpedersen' },
+  { gender: 'male', fullName: 'carljacobs' }
+]
+
+analytics> db.persons.aggregate([{$project:{_id:0,gender:1,fullName:{$concat:[{$toUpper:"$name.first"}," ",{$toUpper:"$name.last"}]}}}])
+[
+  { gender: 'male', fullName: 'VICTOR PEDERSEN' },
+  { gender: 'male', fullName: 'CARL JACOBS' }
+]
+
+db.persons.aggregate([
+    {
+      $project: {
+        _id: 0,
+        gender: 1,
+        fullName: {
+          $concat: [
+            { $toUpper: { $substrCP: ['$name.first', 0, 1] } },
+            {
+              $substrCP: [
+                '$name.first',
+                1,
+                { $subtract: [{ $strLenCP: '$name.first' }, 1] }
+              ]
+            },
+            ' ',
+            { $toUpper: { $substrCP: ['$name.last', 0, 1] } },
+            {
+              $substrCP: [
+                '$name.last',
+                1,
+                { $subtract: [{ $strLenCP: '$name.last' }, 1] }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]).pretty();
+
+
+ db.persons.aggregate([{$project:{_id:0,gender:1,fullName:{$concat:[{$toUpper:{$substrCP:["$name.first",0,1]}},{$substrCP:["$name.first",1,{$subtract:[{$strLenCP:"$name.first"},1]}]}," ",{$toUpper:"$name.last"}]}}}])
+[
+  { gender: 'male', fullName: 'Victor PEDERSEN' },
+  { gender: 'male', fullName: 'Carl JACOBS' },
+]  
+
+convert:
+db.persons.aggregate([{$project:{_id:0,name:1,email:1,location:{type:"Point",coordinates:[{$convert:{input:"$location.coordinates.longitude",to:'double',onError:0.0,onNull:0.0}}]}}},{$project:{_id:0,gender:1,email:1,location:1,fullName:{$concat:[{$toUpper:{$substrCP:["$name.first",0,1]}},{$substrCP:["$name.first",1,{$subtract:[{$strLenCP:"$name.first"},1]}]}," ",{$toUpper:"$name.last"}]}}}]) 
+ 
+{
+    location: { type: 'Point', coordinates: [ 78.0207 ] },
+    email: 'anne.ruiz@example.com',
+    fullName: 'Anne RUIZ'
+  } 
+ 
+ db.persons.aggregate([{$project:{_id:0,name:1,email:1,location:{type:"Point",coordinates:[{$convert:{input:"$location.coordinates.longitude",to:'double',onError:0.0,onNull:0.0}},{$convert:{input:"$location.coordinates.latitude",to:'double',onError:0.0,onNull:0.0}}]}}},{$project:{_id:0,gender:1,email:1,location:1,fullName:{$concat:[{$toUpper:{$substrCP:["$name.first",0,1]}},{$substrCP:["$name.first",1,{$subtract:[{$strLenCP:"$name.first"},1]}]}," ",{$toUpper:"$name.last"}]}}}])
+  {
+    location: { type: 'Point', coordinates: [ 78.0207, -84.1572 ] },
+    email: 'anne.ruiz@example.com',
+    fullName: 'Anne RUIZ'
+  }
+  
+  analytics> db.persons.aggregate([{$project:{_id:0,name:1,email:1,age:"$dob.age",birthDate:{$convert:{input:'$dob.date',to:'date'}},location:{type:"Point",coordinates:[{$convert:{input:"$location.coordinates.longitude",to:'double',onError:0.0,onNull:0.0}},{$convert:{input:"$location.coordinates.latitude",to:'double',onError:0.0,onNull:0.0}}]}}},{$project:{_id:0,gender:1,email:1,location:1,birthDate:1,age:1,fullName:{$concat:[{$toUpper:{$substrCP:["$name.first",0,1]}},{$substrCP:["$name.first",1,{$subtract:[{$strLenCP:"$name.first"},1]}]}," ",{$toUpper:"$name.last"}]}}}])
+[
+  {
+    location: { type: 'Point', coordinates: [ -31.0208, -29.8113 ] },
+    email: 'victor.pedersen@example.com',
+    age: 59,
+    birthDate: ISODate("1959-02-19T23:56:23.000Z"),
+    fullName: 'Victor PEDERSEN'
+  }
+  toDate and isoWeekYear:
+ 
+ db.persons.aggregate([{$project:{_id:0,name:1,email:1,age:"$dob.age",birthDate:{$toDate:'$dob.date'}}},{$gro$group:{_id:{birthYear:{$isoWeekYear:"$birthDate"}},totalPersons:{$sum:1}}},{$sort:{totalPersons:-1}}])
+[
+  { _id: { birthYear: Long("1955") }, totalPersons: 113 },
+  { _id: { birthYear: Long("1961") }, totalPersons: 111}]
+  
+Push all Array elements into 1 array:
+  
+ analytics> db.friends.aggregate([{$group:{_id:{age:"$age"},allHobbies:{$push:"$hobbies"}}}])
+[
+  {
+    _id: { age: 29 },
+    allHobbies: [ [ 'Sports', 'Cooking' ], [ 'Cooking', 'Skiing' ] ]
+  },
+  { _id: { age: 30 }, allHobbies: [ [ 'Eating', 'Data Analytics' ] ] }
+] 
+
+Group: Merge multiple documents into 1 document where as unWind takes one document and splits into multiple documents.
+
+ db.friends.aggregate([{$unwind:"$hobbies"}])
+[
+  {
+    _id: ObjectId("6595cc35af93c3c84bcbcdd3"),
+    name: 'Max',
+    hobbies: 'Sports',
+    age: 29,
+    examScores: [
+      { difficulty: 4, score: 57.9 },
+      { difficulty: 6, score: 62.1 },
+      { difficulty: 3, score: 88.5 }
+    ]
+  },
+  {
+    _id: ObjectId("6595cc35af93c3c84bcbcdd3"),
+    name: 'Max',
+    hobbies: 'Cooking',
+    age: 29,
+    examScores: [
+      { difficulty: 4, score: 57.9 },
+      { difficulty: 6, score: 62.1 },
+      { difficulty: 3, score: 88.5 }
+    ]
+  }
+  ]
+  
+ db.friends.aggregate([{$unwind:"$hobbies"},{$group:{_id:{age:"$age"},allHobbies:{$push:"$hobbies"}}}])
+[
+  {
+    _id: { age: 29 },
+    allHobbies: [ 'Sports', 'Cooking', 'Cooking', 'Skiing' ]
+  },
+  { _id: { age: 30 }, allHobbies: [ 'Eating', 'Data Analytics' ] }
+]
+
+Eliminating Duplicate Values -> addToSet
+
+   db.friends.aggregate([{$unwind:"$hobbies"},{$group:{_id:{age:"$age"},allHobbies:{$addToSet:"$hobbies"}}}])
+
+Slice : it will pull the first element from an array 
+  db.friends.aggregate([{$project:{_id:0,examScores:{$slice:["$examScores",1]}}}])
+[
+  { examScores: [ { difficulty: 4, score: 57.9 } ] },
+  { examScores: [ { difficulty: 7, score: 52.1 } ] },
+  { examScores: [ { difficulty: 3, score: 75.1 } ] }
+  
+  db.friends.aggregate([{$project:{_id:0,examScores:{$slice:["$examScores",2,1]}}}]) --> starts with 2nd element and will pull 1 element
+ 
+ Length Of An Array:
+analytics>  db.friends.aggregate([{$project:{_id:0,examScores:{$size:"$examScores"}}}])
+[ { examScores: 3 }, { examScores: 3 }, { examScores: 3 } ]	
