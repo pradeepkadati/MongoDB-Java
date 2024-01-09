@@ -647,3 +647,46 @@ Slice : it will pull the first element from an array
  Length Of An Array:
 analytics>  db.friends.aggregate([{$project:{_id:0,examScores:{$size:"$examScores"}}}])
 [ { examScores: 3 }, { examScores: 3 }, { examScores: 3 } ]	
+
+
+ Working with Numeric Data
+ 
+ Integers int 32
+ Longs    int 64
+ Doubles  64(with double places)-->default data type
+ High precision double 128 bit
+ 
+db.persons.insertOne({age:NumberInt("29")})  -->int 32 bit
+db.persons.insertOne({valuation:2147483648})  --> default double 64 bit
+db.persons.insertOne({valuation:NumberLong("2147483648")}) int 64 bit
+ db.persons.insertOne({a:0.3,b:0.2})-->float 
+contactdata> db.persons.aggregate([{$project:{result:{$subtract:["$a","$b"]}}}])
+[
+  {
+    _id: ObjectId("659c5225074d597f7ad10c8e"),
+    result: 0.09999999999999998
+  }
+]
+db.persons.insertOne({a:NumberDecimal("0.3"),b:NumberDecimal("0.2")}) -->High precision double
+
+contactdata> db.persons.aggregate([{$project:{result:{$subtract:["$a","$b"]}}}])
+[
+  {
+    _id: ObjectId("659c52dc074d597f7ad10c8f"),
+    result: Decimal128("0.1")
+  }
+]
+
+db.persons.stats();
+
+Security:
+Authentication: Identifies valid users of teh database
+Authorization: identifies what these users may actually do in the database
+
+Admin: ableto manage db configs and create users.does not need to able to insert or fetch data.
+Developer:needs to be able to insert,update,delete or fetch (CRUD) 
+Data Scientist: Needs to be able to fetch the data.
+
+Roles:
+Database User: read,readWrite
+Database Admin: dbAdmin,userAdmin,dbOwner
